@@ -569,6 +569,26 @@ If you enable `openai.responses.rerank`, QMD will call `/v1/responses` with a
 JSON schema payload (compatible with LM Studio structured output) to force
 structured rerank scores.
 
+LM Studio structured output schema (copy/paste when configuring the rerank model):
+
+```json
+{
+  "name": "rerank_scores",
+  "schema": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "index": { "type": "integer" },
+        "score": { "type": "number" }
+      },
+      "required": ["index", "score"]
+    }
+  }
+}
+```
+
 To sanity-check your remote setup, run:
 
 ```bash
