@@ -1252,7 +1252,7 @@ export async function chunkDocumentByTokens(
   const llm = getDefaultLlamaCpp();
 
   if (!supportsTokenization(llm)) {
-    const chunks = chunkDocumentByChars(content, maxTokens * 4, overlapTokens * 4);
+    const chunks = chunkDocument(content, maxTokens * 4, overlapTokens * 4);
     return chunks.map((chunk) => ({
       text: chunk.text,
       pos: chunk.pos,
