@@ -569,6 +569,10 @@ If you enable `openai.responses.rerank`, QMD will call `/v1/responses` with a
 JSON schema payload (compatible with LM Studio structured output) to force
 structured rerank scores.
 
+We recommend enabling this flag when your server supports `/v1/responses` because
+it is the newer OpenAI-compatible endpoint and provides stronger guarantees that
+the rerank output is valid JSON.
+
 LM Studio structured output schema (copy/paste when configuring the rerank model):
 
 ```json
