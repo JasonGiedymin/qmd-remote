@@ -357,6 +357,7 @@ type OpenAIClientConfig = {
   models: OpenAIModelConfig;
   temperatures: OpenAITemperatureConfig;
   timeoutMs: number;
+  useResponsesForRerank: boolean;
 };
 
 function resolveOpenAIBaseUrl(config: OpenAIConfig): string {
@@ -392,6 +393,7 @@ function normalizeOpenAIConfig(config?: OpenAIConfig): OpenAIClientConfig {
       rerank: config.temperatures?.rerank ?? 0.1,
     },
     timeoutMs: config.timeout_ms ?? 60_000,
+    useResponsesForRerank: config.responses?.rerank ?? false,
   };
 }
 
@@ -422,6 +424,29 @@ function extractJsonArray(text: string): unknown[] | null {
   } catch {
     return null;
   }
+}
+
+function extractResponsesOutputText(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const data = payload as {
+    output?: { content?: { type?: string; text?: string }[] }[];
+    output_text?: string;
+  };
+  if (typeof data.output_text === "string") {
+    return data.output_text;
+  }
+  if (Array.isArray(data.output)) {
+    for (const item of data.output) {
+      const content = item?.content;
+      if (!Array.isArray(content)) continue;
+      for (const part of content) {
+        if (part?.type === "output_text" && typeof part.text === "string") {
+          return part.text;
+        }
+      }
+    }
+  }
+  return null;
 }
 
 function parseRerankScores(
@@ -477,6 +502,10 @@ export class OpenAICompatibleLLM implements LLM {
     } finally {
       clearTimeout(timeout);
     }
+  }
+
+  private async requestResponses<T>(payload: unknown, signal?: AbortSignal): Promise<T> {
+    return this.request<T>("/v1/responses", payload, signal);
   }
 
   async embed(text: string, options: EmbedOptions = {}): Promise<EmbeddingResult | null> {
@@ -610,22 +639,61 @@ export class OpenAICompatibleLLM implements LLM {
     documents: RerankDocument[],
     _options: RerankOptions = {}
   ): Promise<RerankResult> {
-    const prompt =
-      "You are a reranking model. Score each document for relevance to the query on a 0-1 scale.\n" +
-      "Return a JSON array of objects with fields: index, score.\n" +
+    const basePrompt =
+      "Score each document for relevance to the query on a 0-1 scale.\n" +
       `Query: ${query}\n` +
       documents.map((doc, index) => `Document ${index}:\n${doc.text}`).join("\n\n");
 
     try {
-      const payload = {
+      if (this.config.useResponsesForRerank) {
+        const payload = {
+          model: this.config.models.rerank,
+          input: `${basePrompt}\nReturn JSON.`,
+          temperature: this.config.temperatures.rerank,
+          max_output_tokens: 400,
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "rerank_scores",
+              schema: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    index: { type: "integer" },
+                    score: { type: "number" },
+                  },
+                  required: ["index", "score"],
+                },
+              },
+            },
+          },
+        };
+        const data = await this.requestResponses<unknown>(payload);
+        const content = extractResponsesOutputText(data) ?? "";
+        const parsed = parseRerankScores(content, documents);
+        if (parsed) {
+          return { results: parsed, model: this.config.models.rerank };
+        }
+      }
+
+      const chatPayload = {
         model: this.config.models.rerank,
-        messages: [{ role: "user", content: prompt }],
+        messages: [
+          {
+            role: "user",
+            content:
+              `${basePrompt}\n` +
+              "Return a JSON array of objects with fields: index, score.",
+          },
+        ],
         temperature: this.config.temperatures.rerank,
         max_tokens: 400,
       };
       const data = await this.request<{ choices: { message: { content: string } }[] }>(
         "/v1/chat/completions",
-        payload
+        chatPayload
       );
       const content = data.choices?.[0]?.message?.content ?? "";
       const parsed = parseRerankScores(content, documents);

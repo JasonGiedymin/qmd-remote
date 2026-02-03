@@ -17,6 +17,9 @@ export type OpenAIConfig = {
   port?: number;
   protocol?: "http" | "https";
   api_key?: string;
+  responses?: {
+    rerank?: boolean;
+  };
   models?: {
     embed?: string;
     generate?: string;

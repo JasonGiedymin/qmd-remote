@@ -549,6 +549,9 @@ openai:
   protocol: http
   # Optional: base_url: http://localhost:8000
   # Optional: api_key: sk-...
+  # Optional: use LM Studio structured output for reranking
+  responses:
+    rerank: true
   models:
     embed: embeddinggemma
     generate: qmd-query-expansion
@@ -561,6 +564,10 @@ openai:
 QMD uses `/v1/embeddings` for vectorization, `/v1/chat/completions` for query
 expansion and reranking, and `/v1/models` to validate model availability when
 possible.
+
+If you enable `openai.responses.rerank`, QMD will call `/v1/responses` with a
+JSON schema payload (compatible with LM Studio structured output) to force
+structured rerank scores.
 
 To sanity-check your remote setup, run:
 

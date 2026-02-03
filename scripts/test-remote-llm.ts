@@ -13,6 +13,11 @@ type ChatResponse = {
   choices?: { message?: { content?: string } }[];
 };
 
+type ResponsesOutput = {
+  output?: { content?: { type?: string; text?: string }[] }[];
+  output_text?: string;
+};
+
 function resolveBaseUrl(config: OpenAIConfig): string {
   if (config.base_url) {
     return config.base_url.replace(/\/+$/, "");
@@ -29,6 +34,24 @@ function buildHeaders(apiKey?: string): HeadersInit {
     headers.Authorization = `Bearer ${apiKey}`;
   }
   return headers;
+}
+
+function extractResponsesOutputText(payload: ResponsesOutput): string | null {
+  if (typeof payload.output_text === "string") {
+    return payload.output_text;
+  }
+  if (Array.isArray(payload.output)) {
+    for (const item of payload.output) {
+      const content = item?.content;
+      if (!Array.isArray(content)) continue;
+      for (const part of content) {
+        if (part?.type === "output_text" && typeof part.text === "string") {
+          return part.text;
+        }
+      }
+    }
+  }
+  return null;
 }
 
 async function main(): Promise<void> {
@@ -93,32 +116,71 @@ async function main(): Promise<void> {
   const chatText = chatData.choices?.[0]?.message?.content?.trim() ?? "";
   console.log(`Chat response: ${chatText || "(empty)"}`);
 
-  const rerankResp = await fetch(`${baseUrl}/v1/chat/completions`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      model: openai.models.rerank,
-      temperature: openai.temperatures?.rerank ?? 0.1,
-      max_tokens: 200,
-      messages: [
-        {
-          role: "user",
-          content:
-            "Score each document for relevance to the query on a 0-1 scale.\n" +
-            "Return a JSON array of objects with fields: index, score.\n" +
-            "Query: vector search\n" +
-            "Document 0:\nVector search uses embeddings to find similar text.\n\n" +
-            "Document 1:\nThis document is about cooking pasta.",
+  const rerankPrompt =
+    "Score each document for relevance to the query on a 0-1 scale.\n" +
+    "Return a JSON array of objects with fields: index, score.\n" +
+    "Query: vector search\n" +
+    "Document 0:\nVector search uses embeddings to find similar text.\n\n" +
+    "Document 1:\nThis document is about cooking pasta.";
+
+  if (openai.responses?.rerank) {
+    const rerankResp = await fetch(`${baseUrl}/v1/responses`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        model: openai.models.rerank,
+        input: rerankPrompt,
+        temperature: openai.temperatures?.rerank ?? 0.1,
+        max_output_tokens: 200,
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "rerank_scores",
+            schema: {
+              type: "array",
+              items: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  index: { type: "integer" },
+                  score: { type: "number" },
+                },
+                required: ["index", "score"],
+              },
+            },
+          },
         },
-      ],
-    }),
-  });
-  if (!rerankResp.ok) {
-    throw new Error(`Rerank request failed: ${rerankResp.status} ${await rerankResp.text()}`);
+      }),
+    });
+    if (!rerankResp.ok) {
+      throw new Error(`Rerank request failed: ${rerankResp.status} ${await rerankResp.text()}`);
+    }
+    const rerankData = await rerankResp.json() as ResponsesOutput;
+    const rerankText = extractResponsesOutputText(rerankData)?.trim() ?? "";
+    console.log(`Rerank response: ${rerankText || "(empty)"}`);
+  } else {
+    const rerankResp = await fetch(`${baseUrl}/v1/chat/completions`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        model: openai.models.rerank,
+        temperature: openai.temperatures?.rerank ?? 0.1,
+        max_tokens: 200,
+        messages: [
+          {
+            role: "user",
+            content: rerankPrompt,
+          },
+        ],
+      }),
+    });
+    if (!rerankResp.ok) {
+      throw new Error(`Rerank request failed: ${rerankResp.status} ${await rerankResp.text()}`);
+    }
+    const rerankData = await rerankResp.json() as ChatResponse;
+    const rerankText = rerankData.choices?.[0]?.message?.content?.trim() ?? "";
+    console.log(`Rerank response: ${rerankText || "(empty)"}`);
   }
-  const rerankData = await rerankResp.json() as ChatResponse;
-  const rerankText = rerankData.choices?.[0]?.message?.content?.trim() ?? "";
-  console.log(`Rerank response: ${rerankText || "(empty)"}`);
 }
 
 main().catch((error) => {
