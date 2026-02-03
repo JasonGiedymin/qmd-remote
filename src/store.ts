@@ -17,10 +17,10 @@ import picomatch from "picomatch";
 import { createHash } from "crypto";
 import { realpathSync, statSync, mkdirSync } from "node:fs";
 import {
-  LlamaCpp,
   getDefaultLlamaCpp,
   formatQueryForEmbedding,
   formatDocForEmbedding,
+  supportsTokenization,
   type RerankDocument,
   type ILLMSession,
 } from "./llm.js";
@@ -1428,6 +1428,15 @@ export async function chunkDocumentByTokens(
   windowTokens: number = CHUNK_WINDOW_TOKENS
 ): Promise<{ text: string; pos: number; tokens: number }[]> {
   const llm = getDefaultLlamaCpp();
+
+  if (!supportsTokenization(llm)) {
+    const chunks = chunkDocument(content, maxTokens * 4, overlapTokens * 4);
+    return chunks.map((chunk) => ({
+      text: chunk.text,
+      pos: chunk.pos,
+      tokens: Math.max(1, Math.ceil(chunk.text.length / 4)),
+    }));
+  }
 
   // Use moderate chars/token estimate (prose ~4, code ~2, mixed ~3)
   // If chunks exceed limit, they'll be re-split with actual ratio
