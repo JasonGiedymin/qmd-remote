@@ -573,19 +573,15 @@ LM Studio structured output schema (copy/paste when configuring the rerank model
 
 ```json
 {
-  "name": "rerank_scores",
-  "strict": true,
-  "schema": {
-    "type": "array",
-    "items": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "index": { "type": "integer" },
-        "score": { "type": "number" }
-      },
-      "required": ["index", "score"]
-    }
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "index": { "type": "integer" },
+      "score": { "type": "number" }
+    },
+    "required": ["index", "score"]
   }
 }
 ```

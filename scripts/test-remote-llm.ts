@@ -135,19 +135,15 @@ async function main(): Promise<void> {
         response_format: {
           type: "json_schema",
           json_schema: {
-            name: "rerank_scores",
-            strict: true,
-            schema: {
-              type: "array",
-              items: {
-                type: "object",
-                additionalProperties: false,
-                properties: {
-                  index: { type: "integer" },
-                  score: { type: "number" },
-                },
-                required: ["index", "score"],
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                index: { type: "integer" },
+                score: { type: "number" },
               },
+              required: ["index", "score"],
             },
           },
         },
