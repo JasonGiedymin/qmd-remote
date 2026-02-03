@@ -655,6 +655,7 @@ export class OpenAICompatibleLLM implements LLM {
             type: "json_schema",
             json_schema: {
               name: "rerank_scores",
+              strict: true,
               schema: {
                 type: "array",
                 items: {

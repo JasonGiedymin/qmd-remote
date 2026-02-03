@@ -136,6 +136,7 @@ async function main(): Promise<void> {
           type: "json_schema",
           json_schema: {
             name: "rerank_scores",
+            strict: true,
             schema: {
               type: "array",
               items: {
