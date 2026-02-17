@@ -398,7 +398,7 @@ function normalizeOpenAIConfig(config?: OpenAIConfig): OpenAIClientConfig {
   };
 }
 
-function buildOpenAIHeaders(apiKey?: string): HeadersInit {
+function buildOpenAIHeaders(apiKey?: string): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
@@ -514,8 +514,9 @@ export class OpenAICompatibleLLM implements LLM {
       const model = options.model || this.config.models.embed;
       const payload = { model, input: text };
       const data = await this.request<{ data: { embedding: number[] }[] }>("/v1/embeddings", payload);
-      if (!data.data?.length) return null;
-      return { embedding: data.data[0].embedding, model };
+      const first = data.data?.[0];
+      if (!first) return null;
+      return { embedding: first.embedding, model };
     } catch (error) {
       console.error("Remote embedding error:", error);
       return null;
@@ -1767,6 +1768,9 @@ export function getDefaultLlamaCpp(): LLM {
   if (!defaultLlamaCpp) {
     const config = loadLLMConfig();
     if (config.provider === "openai") {
+      if (!config.openai) {
+        throw new Error(`OpenAI config missing. Check ${getLLMConfigPath()}.`);
+      }
       defaultLlamaCpp = new OpenAICompatibleLLM(config.openai);
     } else {
       defaultLlamaCpp = new LlamaCpp();

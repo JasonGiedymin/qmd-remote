@@ -383,7 +383,16 @@ async function showStatus(): Promise<void> {
   // Device / GPU info
   try {
     const llm = getDefaultLlamaCpp();
-    const device = await llm.getDeviceInfo();
+    if (!("getDeviceInfo" in llm) || typeof (llm as any).getDeviceInfo !== "function") {
+      throw new Error("Device info not available for remote LLM.");
+    }
+    const device = await (llm as { getDeviceInfo: () => Promise<{
+      gpu: string | false;
+      gpuOffloading: boolean;
+      gpuDevices: string[];
+      vram?: { total: number; used: number; free: number };
+      cpuCores: number;
+    }> }).getDeviceInfo();
     console.log(`\n${c.bold}Device${c.reset}`);
     if (device.gpu) {
       console.log(`  GPU:      ${c.green}${device.gpu}${c.reset} (offloading: ${device.gpuOffloading ? 'yes' : 'no'})`);
