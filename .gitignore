@@ -11,6 +11,7 @@ texts/
 !README.md
 !CLAUDE.md
 !CHANGELOG.md
+!feature/*.md
 !skills/**/*.md
 !finetune/*.md
 finetune/outputs/
