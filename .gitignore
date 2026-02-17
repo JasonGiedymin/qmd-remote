@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .npmrc
+package-lock.json
 *.sqlite
 .DS_Store
 archive/
