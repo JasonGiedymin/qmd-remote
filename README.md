@@ -266,6 +266,26 @@ npm install -g @tobilu/qmd
 bun install -g @tobilu/qmd
 ```
 
+### Install This Fork From Source (Bun Global)
+
+```sh
+git clone https://github.com/JasonGiedymin/qmd-remote.git
+cd qmd-remote
+bun add -g /absolute/path/to/qmd-remote
+```
+
+To remove the global install:
+
+```sh
+bun remove -g @jasongiedymin/qmd
+```
+
+To list global packages:
+
+```sh
+bun pm ls -g
+```
+
 ### Development
 
 ```sh
