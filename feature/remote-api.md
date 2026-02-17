@@ -69,6 +69,23 @@ The remote provider surface (CLI wiring, config schema, LLM adapter behavior, do
 - [ ] run local verification
 - [ ] commit + push
 
+## Remote test suite
+
+Remote provider tests live in `test/*.remote.test.ts`. Run them with an
+OpenAI-compatible config and the opt-in flag:
+
+```bash
+QMD_CONFIG_DIR=~/.config/qmd npm run test:remote
+```
+
+The tests are skipped unless `QMD_REMOTE_TEST=1` is set (so local CI stays fast).
+Remote rerank can be flaky; the test retries a few times before failing.
+
+## Sync baseline
+
+Record the upstream `main` commit hash each time you sync so future rebases can
+quickly verify whether the branch is current.
+
 If rebasing becomes too conflict-heavy, preserve remote support as a small, auditable patch stack and cherry-pick it onto fresh upstream `main` snapshots.
 
 ## Sync status (latest)

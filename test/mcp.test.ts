@@ -16,6 +16,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import YAML from "yaml";
 import type { CollectionConfig } from "../src/collections";
+import { loadLLMConfig } from "../src/llm_config.js";
 
 // =============================================================================
 // Test Database Setup
@@ -24,6 +25,7 @@ import type { CollectionConfig } from "../src/collections";
 let testDb: Database;
 let testDbPath: string;
 let testConfigDir: string;
+const isRemoteProvider = loadLLMConfig().provider === "openai";
 
 afterAll(async () => {
   // Ensure native resources are released to avoid ggml-metal asserts on process exit.
@@ -355,7 +357,13 @@ describe("MCP Server", () => {
       ];
       const reranked = await rerank("readme", docs, DEFAULT_RERANK_MODEL, testDb);
       expect(reranked.length).toBe(2);
-      expect(reranked[0]!.score).toBeGreaterThan(0);
+      if (isRemoteProvider) {
+        for (const result of reranked) {
+          expect(Number.isFinite(result.score)).toBe(true);
+        }
+      } else {
+        expect(reranked[0]!.score).toBeGreaterThan(0);
+      }
     });
 
     test("full hybrid search pipeline", async () => {

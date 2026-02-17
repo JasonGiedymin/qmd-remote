@@ -664,6 +664,18 @@ bun scripts/test-remote-llm.ts
 The script reads `~/.config/qmd/llm.yml`, calls `/v1/models`, sends an embedding
 request, runs a small chat completion, and verifies the reranker prompt.
 
+To run the full test suite (local + remote), use:
+
+```bash
+npm run test:all
+```
+
+This runs the standard tests first, then the remote provider tests with:
+
+```bash
+QMD_CONFIG_DIR=~/.config/qmd QMD_REMOTE_TEST=1 npm run test:remote
+```
+
 ### EmbeddingGemma Prompt Format
 
 ```

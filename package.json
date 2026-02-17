@@ -16,6 +16,8 @@
     "prepare": "[ -d .git ] && ./scripts/install-hooks.sh || true",
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run --reporter=verbose test/",
+    "test:remote": "QMD_REMOTE_TEST=1 vitest run --reporter=verbose test/*.remote.test.ts",
+    "test:all": "npm test && QMD_CONFIG_DIR=~/.config/qmd QMD_REMOTE_TEST=1 npm run test:remote",
     "qmd": "tsx src/qmd.ts",
     "index": "tsx src/qmd.ts index",
     "vector": "tsx src/qmd.ts vector",

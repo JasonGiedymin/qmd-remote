@@ -18,12 +18,15 @@ import {
   type RerankDocument,
   type ILLMSession,
 } from "../src/llm.js";
+import { loadLLMConfig } from "../src/llm_config.js";
+
+const isRemoteProvider = loadLLMConfig().provider === "openai";
 
 // =============================================================================
 // Singleton Tests (no model loading required)
 // =============================================================================
 
-describe("Default LlamaCpp Singleton", () => {
+describe.skipIf(isRemoteProvider)("Default LlamaCpp Singleton", () => {
   // Test singleton behavior without resetting to avoid orphan instances
   test("getDefaultLlamaCpp returns same instance on subsequent calls", () => {
     const llm1 = getDefaultLlamaCpp();
@@ -37,7 +40,7 @@ describe("Default LlamaCpp Singleton", () => {
 // Model Existence Tests
 // =============================================================================
 
-describe("LlamaCpp.modelExists", () => {
+describe.skipIf(isRemoteProvider)("LlamaCpp.modelExists", () => {
   test("returns exists:true for HuggingFace model URIs", async () => {
     const llm = getDefaultLlamaCpp();
     const result = await llm.modelExists("hf:org/repo/model.gguf");
@@ -59,7 +62,7 @@ describe("LlamaCpp.modelExists", () => {
 // Integration Tests (require actual models)
 // =============================================================================
 
-describe.skipIf(!!process.env.CI)("LlamaCpp Integration", () => {
+describe.skipIf(!!process.env.CI || isRemoteProvider)("LlamaCpp Integration", () => {
   // Use the singleton to avoid multiple Metal contexts
   const llm = getDefaultLlamaCpp();
 
@@ -561,4 +564,3 @@ describe.skipIf(!!process.env.CI)("LLM Session Management", () => {
     });
   });
 });
-
